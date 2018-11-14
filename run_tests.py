@@ -2,13 +2,13 @@
 
 #
 #   Copyright 2016 Purdue University
-#   
+#
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
 #   You may obtain a copy of the License at
-#   
+#
 #       http://www.apache.org/licenses/LICENSE-2.0
-#   
+#
 #   Unless required by applicable law or agreed to in writing, software
 #   distributed under the License is distributed on an "AS IS" BASIS,
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -43,7 +43,7 @@ TEST_TYPE = ""
 # Change this variable to the filename (minus extension)
 # of the top level file for your project. This should
 # match the file name given in the top level wscript
-TOP_LEVEL = "RISCVBusiness" 
+TOP_LEVEL = "RISCVBusiness"
 
 def parse_arguments():
       global ARCH, FILE_NAME, SUPPORTED_ARCHS, TEST_TYPE
@@ -60,11 +60,11 @@ def parse_arguments():
       ARCH = args.arch
       FILE_NAME = args.file_name
       TEST_TYPE = args.test_type
-      
+
       if TEST_TYPE not in SUPPORTED_TEST_TYPES:
           print "ERROR: " + TEST_TYPE + " is not a supported test type"
           sys.exit(1)
-      
+
 
       if TEST_TYPE == "":
         for test_type in SUPPORTED_TEST_TYPES[:-1]:
@@ -100,14 +100,14 @@ def compile_asm(file_name):
     if not os.path.exists(os.path.dirname(output_name)):
         os.makedirs(os.path.dirname(output_name))
 
-    cmd_arr = ['riscv64-unknown-elf-gcc', '-m32', '-march=RV32IM', '-static',
+    cmd_arr = ['riscv64-unknown-elf-gcc', '-march=rv64imfd', '-static',
                 '-mcmodel=medany', '-fvisibility=hidden', '-nostdlib',
                 '-nostartfiles', '-T./verification/asm-env/link.ld',
                 '-I./verification/asm-env/asm', file_name, '-o', output_name]
     failure = subprocess.call(cmd_arr)
     if failure:
         return -1
-    
+
     # create an meminit.hex file from the elf file produced above
     cmd_arr = ['elf2hex', '8', '65536', output_name]
     hex_file_loc = output_dir + 'meminit.hex'
@@ -129,7 +129,7 @@ def compile_asm_for_self(file_name):
     if not os.path.exists(os.path.dirname(output_name)):
         os.makedirs(os.path.dirname(output_name))
 
-    cmd_arr = ['riscv64-unknown-elf-gcc', '-m32', '-march=RV32IM', '-static',
+    cmd_arr = ['riscv64-unknown-elf-gcc', '-march=rv64imfd', '-static',
                 '-mcmodel=medany', '-fvisibility=hidden', '-nostdlib',
                 '-nostartfiles', '-T./verification/asm-env/link.ld',
                 '-I./verification/asm-env/selfasm', file_name, '-o',
@@ -137,7 +137,7 @@ def compile_asm_for_self(file_name):
     failure = subprocess.call(cmd_arr)
     if failure:
         return -1
-    
+
     # create an meminit.hex file from the elf file produced above
     cmd_arr = ['elf2hex', '8', '65536', output_name]
     hex_file_loc = output_dir + 'meminit.hex'
@@ -157,7 +157,7 @@ def compile_c(file_name):
     if not os.path.exists(os.path.dirname(output_name)):
         os.makedirs(os.path.dirname(output_name))
 
-    cmd_arr = ['riscv64-unknown-elf-gcc', '-O0', '-m32', '-march=RV32IM', '-ffreestanding', '-nostdlib', '-o', output_name, 
+    cmd_arr = ['riscv64-unknown-elf-gcc', '-O0', '-march=rv64imfd', '-ffreestanding', '-nostdlib', '-o', output_name,
               '-Wl,-Bstatic,-T,verification/c-firmware/link.ld,--strip-debug']
     cmd_arr += ['-lgcc', 'verification/c-firmware/trap.S']
     cmd_arr += ['-Iverification/c-firmware/']
@@ -165,7 +165,7 @@ def compile_c(file_name):
     failure = subprocess.call(cmd_arr)
     if failure:
         return -1
-    
+
     # create an meminit.hex file from the elf file produced above
     cmd_arr = ['elf2hex', '8', '65536', output_name]
     hex_file_loc = output_dir + 'meminit.hex'
@@ -206,7 +206,7 @@ def calculate_checksum_str(data, addr):
     checksum_lower_byte = hex(checksum)[2:]
     if len(checksum_lower_byte) > 2:
       checksum_lower_byte = checksum_lower_byte[-2:]
-    return checksum_lower_byte 
+    return checksum_lower_byte
 
 # Create a temp file that consists of the Intel HEX format
 # version of the meminit.hex file, delete the original log file
@@ -330,9 +330,9 @@ def clean_spike_output(file_name):
     subprocess.call(['rm', spike_output])
     subprocess.call(['mv', cleaned_location, spike_output])
 
-    # clean the trace 
+    # clean the trace
     trace_output = output_dir + short_name + '_spike.trace'
-    cleaned_output = '' 
+    cleaned_output = ''
     with open(trace_output, 'r') as trace_file:
         for line in trace_file:
             broken_line_arr = line.split()
@@ -347,17 +347,17 @@ def clean_spike_output(file_name):
             new_line = ' '.join(broken_line_arr) + '\n'
             cleaned_output += new_line
     with open(trace_output, 'w') as trace_file:
-        trace_file.write(cleaned_output) 
-    
+        trace_file.write(cleaned_output)
+
     return
 
 def clean_sim_trace(file_name):
     short_name = file_name.split(ARCH+'/')[1][:-2]
     output_dir = './sim_out/' + ARCH + '/' + short_name + '/'
- 
-    # clean the trace 
+
+    # clean the trace
     trace_output = output_dir + short_name + '_sim.trace'
-    cleaned_output = '' 
+    cleaned_output = ''
     with open('build/trace.log', 'r') as trace_file:
         for line in trace_file:
             broken_line_arr = line.split()
@@ -366,8 +366,8 @@ def clean_sim_trace(file_name):
             new_line = ' '.join(broken_line_arr) + '\n'
             cleaned_output += new_line
     with open(trace_output, 'w') as trace_file:
-        trace_file.write(cleaned_output) 
-    
+        trace_file.write(cleaned_output)
+
     return
 
 
@@ -420,10 +420,10 @@ def run_spike_asm(file_name):
     # the object file should already exist from calling compile_asm
     short_name = file_name.split(ARCH+'/')[1][:-2]
     output_dir = './sim_out/' + ARCH + '/' + short_name + '/'
-    
+
     elf_name = output_dir + short_name + '.elf'
     log_name = output_dir + short_name + '_spike.hex'
-    cmd_arr = ['spike', '-l', '--isa=RV32IM', '+signature=' + log_name, elf_name]
+    cmd_arr = ['spike', '-l', '--isa=rv32imfd', '+signature=' + log_name, elf_name]
     spike_log = open(output_dir + short_name + '_spike.trace', 'w')
     failure = subprocess.call(cmd_arr, stdout = spike_log, stderr = spike_log)
     spike_log.close()
@@ -555,9 +555,19 @@ def run_c():
      failures += check_results(f)
    return failures
 
+"""
+To compile:
+riscv64-unknown-elf-gcc -march=rv32imfd -static -mcmodel=medany -fvisibility=hidden -nostdlib -nostartfiles -T./verification/asm-env/link.ld
+                        -I./verification/asm-env/selfasm ./verification/self-tests/RV32I/slt.S -o ./sim_out/RV32I/slt/slt.elf
+
+riscv64-unknown-elf-gcc -march=rv64g -mabi=lp64 -static -mcmodel=medany -fvisibility=hidden -nostdlib -nostartfiles -I./env/p -I./macros/scalar
+                        -T./env/p/link.ld rv64ui/add.S -o ./sim_out/rv64ui/rv64ui-p-add
+
+"""
+
 if __name__ == '__main__':
-    parse_arguments()  
-    failures = 0 
+    parse_arguments()
+    failures = 0
     # asm comparison testing
     if TEST_TYPE == "asm":
       failures = run_asm()
