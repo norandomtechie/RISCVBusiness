@@ -36,7 +36,7 @@ START_GREEN = "\033[92m"
 START_RED = "\033[31m"
 
 FILE_NAME = None
-ARCH = "RV32I"
+ARCH = "rv32uf"
 SUPPORTED_ARCHS = []
 SUPPORTED_TEST_TYPES = ['asm', 'c', 'selfasm', ""]
 TEST_TYPE = ""
@@ -49,8 +49,8 @@ def parse_arguments():
       global ARCH, FILE_NAME, SUPPORTED_ARCHS, TEST_TYPE
       parser = argparse.ArgumentParser(description="Run various processor tests. This script expects to be run at the top level of the RISCV Business directory")
       parser.add_argument('--arch', '-a', dest='arch', type=str,
-                          default="RV32I",
-                          help="Specify the architecture targeted. Option(s): RV32I Default: RV32I")
+                          default="rv32uf",
+                          help="Specify the architecture targeted. Option(s): rv32uf Default: rv32uf")
       parser.add_argument('--test', '-t', dest='test_type', type=str, default="",
                           help="Specify what type of tests to run. Option(s): asm,selfasm,c Default: asm")
       parser.add_argument('file_name', metavar='file_name', type=str,
@@ -129,23 +129,25 @@ def compile_asm_for_self(file_name):
     if not os.path.exists(os.path.dirname(output_name)):
         os.makedirs(os.path.dirname(output_name))
 
-    cmd_arr = ['riscv64-unknown-elf-gcc', '-march=rv64imfd', '-static',
+    cmd_arr = ['riscv64-unknown-elf-gcc', '-march=rv32g', '-mabi=ilp32', '-static',
                 '-mcmodel=medany', '-fvisibility=hidden', '-nostdlib',
-                '-nostartfiles', '-T./verification/asm-env/link.ld',
-                '-I./verification/asm-env/selfasm', file_name, '-o',
+                '-nostartfiles', '-I./verification/self-tests/env/p', '-I./verification/self-tests/macros/scalar',
+                '-T./verification/self-tests/env/p/link.ld', file_name, '-o',
                 output_name]
+    print (' '.join (cmd_arr))
     failure = subprocess.call(cmd_arr)
     if failure:
         return -1
 
     # create an meminit.hex file from the elf file produced above
-    cmd_arr = ['elf2hex', '8', '65536', output_name]
+    cmd_arr = ['elf2hex', '8', '4096', output_name]
     hex_file_loc = output_dir + 'meminit.hex'
     with open(hex_file_loc, 'w') as hex_file:
         failure = subprocess.call(cmd_arr, stdout=hex_file)
     if failure:
         return -2
     else:
+        print (' '.join (cmd_arr))
         return 0
 
 def compile_c(file_name):
@@ -397,7 +399,6 @@ def run_sim(file_name):
 def run_self_sim(file_name):
     short_name = file_name.split(ARCH+'/')[1][:-2]
     output_dir = './sim_out/' + ARCH + '/' + short_name + '/'
-
     cmd_arr = ['waf', 'configure', '--top_level=' + TOP_LEVEL + "_self_test"]
     failure = subprocess.call(cmd_arr, stdout=FNULL)
     if failure:
@@ -423,7 +424,7 @@ def run_spike_asm(file_name):
 
     elf_name = output_dir + short_name + '.elf'
     log_name = output_dir + short_name + '_spike.hex'
-    cmd_arr = ['spike', '-l', '--isa=rv32imfd', '+signature=' + log_name, elf_name]
+    cmd_arr = ['spike', '-l', '--isa=rv32ufmfd', '+signature=' + log_name, elf_name]
     spike_log = open(output_dir + short_name + '_spike.trace', 'w')
     failure = subprocess.call(cmd_arr, stdout = spike_log, stderr = spike_log)
     spike_log.close()
@@ -518,14 +519,14 @@ def run_selfasm():
              print "An error has occured converting elf to hex"
          sys.exit(ret)
      clean_init_hex_for_self(f)
-     ret = run_self_sim(f)
-     if ret != 0:
-         if ret == -1:
-             print "An error has occured while seting waf's top level"
-         elif ret == -2:
-             print "An error has occured while running " + f
-         sys.exit(ret)
-     failures += check_results(f)
+     # ret = run_self_sim(f)
+     # if ret != 0:
+     #     if ret == -1:
+     #         print "An error has occured while seting waf's top level"
+     #     elif ret == -2:
+     #         print "An error has occured while running " + f
+     #     sys.exit(ret)
+     # failures += check_results(f)
    return failures
 
 def run_c():
@@ -557,9 +558,6 @@ def run_c():
 
 """
 To compile:
-riscv64-unknown-elf-gcc -march=rv32imfd -static -mcmodel=medany -fvisibility=hidden -nostdlib -nostartfiles -T./verification/asm-env/link.ld
-                        -I./verification/asm-env/selfasm ./verification/self-tests/RV32I/slt.S -o ./sim_out/RV32I/slt/slt.elf
-
 riscv64-unknown-elf-gcc -march=rv64g -mabi=lp64 -static -mcmodel=medany -fvisibility=hidden -nostdlib -nostartfiles -I./env/p -I./macros/scalar
                         -T./env/p/link.ld rv64ui/add.S -o ./sim_out/rv64ui/rv64ui-p-add
 
