@@ -36,7 +36,7 @@ START_GREEN = "\033[92m"
 START_RED = "\033[31m"
 
 FILE_NAME = None
-ARCH = "rv32uf"
+ARCH = "RV32I"
 SUPPORTED_ARCHS = []
 SUPPORTED_TEST_TYPES = ['asm', 'c', 'selfasm', ""]
 TEST_TYPE = ""
@@ -49,8 +49,8 @@ def parse_arguments():
       global ARCH, FILE_NAME, SUPPORTED_ARCHS, TEST_TYPE
       parser = argparse.ArgumentParser(description="Run various processor tests. This script expects to be run at the top level of the RISCV Business directory")
       parser.add_argument('--arch', '-a', dest='arch', type=str,
-                          default="rv32uf",
-                          help="Specify the architecture targeted. Option(s): rv32uf Default: rv32uf")
+                          default="RV32I",
+                          help="Specify the architecture targeted. Option(s): RV32I Default: RV32I")
       parser.add_argument('--test', '-t', dest='test_type', type=str, default="",
                           help="Specify what type of tests to run. Option(s): asm,selfasm,c Default: asm")
       parser.add_argument('file_name', metavar='file_name', type=str,
@@ -93,14 +93,20 @@ def parse_arguments():
 # of that compilation and creates a meminit.hex file for it
 def compile_asm(file_name):
     # compile all of the files
-    short_name = file_name.split(ARCH+'/')[1][:-2]
-    output_dir = './sim_out/' + ARCH + '/' + short_name + '/'
+    path_regex = r"\.\/verification\/asm-tests\/(?P<arch>RV[\d]{2}[A-Z])\/(?P<fn>[a-z0-9_]+)\.S"
+    arch =       re.match (path_regex, file_name).group ('arch')
+    short_name = re.match (path_regex, file_name).group ('fn')
+    output_dir = './sim_out/' + arch + '/' + short_name + '/'
     output_name = output_dir + short_name + '.elf'
+
+    # Added 64-bit support
+    xlen = 'rv64g' if '64' in arch else 'rv32g'
+    abi = 'lp64' if '64' in arch else 'ilp32'
 
     if not os.path.exists(os.path.dirname(output_name)):
         os.makedirs(os.path.dirname(output_name))
 
-    cmd_arr = ['riscv64-unknown-elf-gcc', '-march=rv32im', '-static',
+    cmd_arr = ['riscv64-unknown-elf-gcc', '-march=' + xlen, '-mabi=' + abi, '-static',
                 '-mcmodel=medany', '-fvisibility=hidden', '-nostdlib',
                 '-nostartfiles', '-T./verification/asm-env/link.ld',
                 '-I./verification/asm-env/asm', file_name, '-o', output_name]
@@ -158,17 +164,24 @@ def compile_asm_for_self(file_name):
 
 def compile_c(file_name):
     # compile all of the files
-    short_name = file_name.split(ARCH+'/')[1][:-2]
-    output_dir = './sim_out/' + ARCH + '/' + short_name + '/'
+    path_regex = r"\.\/verification\/c\-tests\/(?P<arch>((?:RV(?:32|64)[A-Z])|(NONSTANDARD)))\/(?P<fn>[a-z0-9_]+)\.c"
+    arch =       re.match (path_regex, file_name).group ('arch')
+    short_name = re.match (path_regex, file_name).group ('fn')
+    output_dir = './sim_out/' + arch + '/' + short_name + '/'
     output_name = output_dir + short_name + '.elf'
+
+    # Added 64-bit support
+    xlen = 'rv64g' if '64' in arch else 'rv32g'
+    abi = 'lp64' if '64' in arch else 'ilp32'
 
     if not os.path.exists(os.path.dirname(output_name)):
         os.makedirs(os.path.dirname(output_name))
 
-    cmd_arr = ['riscv64-unknown-elf-gcc', '-O0', '-march=rv64imfd', '-ffreestanding', '-nostdlib', '-o', output_name,
-              '-Wl,-Bstatic,-T,verification/c-firmware/link.ld,--strip-debug']
-    cmd_arr += ['-lgcc', 'verification/c-firmware/trap.S']
+    cmd_arr = ['riscv64-unknown-elf-gcc', '-O0', '-march=' + xlen, '-mabi=' + abi,
+               '-ffreestanding', '-nostdlib', '-o', output_name,
+               '-Wl,-Bstatic,-T,verification/c-firmware/link.ld,--strip-debug']
     cmd_arr += ['-Iverification/c-firmware/']
+    cmd_arr += ['-lgcc', 'verification/c-firmware/trap.S']
     cmd_arr += ['verification/c-firmware/trap.c', 'verification/c-firmware/print.c', file_name]
     failure = subprocess.call(cmd_arr)
     if failure:
@@ -433,7 +446,7 @@ def run_spike_asm(file_name):
 
     elf_name = output_dir + short_name + '.elf'
     log_name = output_dir + short_name + '_spike.hex'
-    cmd_arr = ['spike', '-l', '--isa=rv32ufmfd', '+signature=' + log_name, elf_name]
+    cmd_arr = ['spike', '-l', '--isa=RV32Imfd', '+signature=' + log_name, elf_name]
     spike_log = open(output_dir + short_name + '_spike.trace', 'w')
     failure = subprocess.call(cmd_arr, stdout = spike_log, stderr = spike_log)
     spike_log.close()
