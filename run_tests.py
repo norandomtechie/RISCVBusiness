@@ -100,7 +100,7 @@ def compile_asm(file_name):
     if not os.path.exists(os.path.dirname(output_name)):
         os.makedirs(os.path.dirname(output_name))
 
-    cmd_arr = ['riscv64-unknown-elf-gcc', '-march=rv64imfd', '-static',
+    cmd_arr = ['riscv64-unknown-elf-gcc', '-march=rv32im', '-static',
                 '-mcmodel=medany', '-fvisibility=hidden', '-nostdlib',
                 '-nostartfiles', '-T./verification/asm-env/link.ld',
                 '-I./verification/asm-env/asm', file_name, '-o', output_name]
@@ -122,25 +122,31 @@ def compile_asm(file_name):
 # settings specifically for compiling self tests
 def compile_asm_for_self(file_name):
     # compile all of the files
-    short_name = file_name.split(ARCH+'/')[1][:-2]
-    output_dir = './sim_out/' + ARCH + '/' + short_name + '/'
+    path_regex = r"verification\/self-tests\/(?P<arch>rv[\d]{2}[a-z]{2})\/(?P<fn>[a-z0-9_]+)\.S"
+    arch =       re.match (path_regex, file_name).group ('arch')
+    short_name = re.match (path_regex, file_name).group ('fn')
+    output_dir = './sim_out/' + arch + '/' + short_name + '/'
     output_name = output_dir + short_name + '.elf'
+
+    # Added 64-bit support
+    xlen = 'rv64g' if '64' in arch else 'rv32g'
+    abi = 'lp64' if '64' in arch else 'ilp32'
 
     if not os.path.exists(os.path.dirname(output_name)):
         os.makedirs(os.path.dirname(output_name))
 
-    cmd_arr = ['riscv64-unknown-elf-gcc', '-march=rv32g', '-mabi=ilp32', '-static',
+    cmd_arr = ['riscv64-unknown-elf-gcc', '-march=' + xlen, '-mabi=' + abi, '-static',
                 '-mcmodel=medany', '-fvisibility=hidden', '-nostdlib',
-                '-nostartfiles', '-I./verification/self-tests/env/p', '-I./verification/self-tests/macros/scalar',
-                '-T./verification/self-tests/env/p/link.ld', file_name, '-o',
-                output_name]
+                '-nostartfiles', '-I./verification/self-tests/env/p',
+                '-I./verification/self-tests/macros/scalar', '-T./verification/self-tests/env/p/link.ld',
+                file_name, '-o', output_name]
     print (' '.join (cmd_arr))
     failure = subprocess.call(cmd_arr)
     if failure:
         return -1
 
     # create an meminit.hex file from the elf file produced above
-    cmd_arr = ['elf2hex', '8', '4096', output_name]
+    cmd_arr = ['elf2hex', '8', '4096', output_name, '2147483648']
     hex_file_loc = output_dir + 'meminit.hex'
     with open(hex_file_loc, 'w') as hex_file:
         failure = subprocess.call(cmd_arr, stdout=hex_file)
@@ -290,10 +296,13 @@ def clean_init_hex_for_self(file_name):
         cleaned_file.write(":00000001FF")
         cleaned_file.close()
     subprocess.call(['rm', init_output])
+    print (' '.join (['rm', init_output]))
     subprocess.call(['mv', cleaned_location, init_output])
+    print (' '.join (['mv', cleaned_location, init_output]))
     if not os.path.exists(os.path.dirname(build_dir)):
         os.makedirs(os.path.dirname(build_dir))
     subprocess.call(['cp', init_output, build_dir])
+    print (' '.join (['cp', init_output, build_dir]))
     return
 
 # Create a temp file that consists of the Intel HEX format
@@ -503,31 +512,32 @@ def run_asm():
    return failures
 
 def run_selfasm():
-   failures = 0
-   if FILE_NAME is None:
-       files = glob.glob("./verification/self-tests/" + ARCH + "/*.S")
-   else:
-       loc = "./verification/self-tests/" + ARCH + "/" + FILE_NAME + "*.S"
-       files = glob.glob(loc)
-   print "Starting self tests..."
-   for f in files:
-     ret = compile_asm_for_self(f)
-     if ret != 0:
-         if ret == -1:
-             print "An error has occured during GCC compilation"
-         elif ret == -2:
-             print "An error has occured converting elf to hex"
-         sys.exit(ret)
-     clean_init_hex_for_self(f)
-     # ret = run_self_sim(f)
-     # if ret != 0:
-     #     if ret == -1:
-     #         print "An error has occured while seting waf's top level"
-     #     elif ret == -2:
-     #         print "An error has occured while running " + f
-     #     sys.exit(ret)
-     # failures += check_results(f)
-   return failures
+    failures = 0
+    print "Starting self tests..."
+    for arch in glob.glob ("verification/self-tests/*"):
+        if FILE_NAME is None:
+            files = glob.glob(arch + "/*.S")
+        else:
+            loc = arch + "/" + FILE_NAME + "*.S"
+            files = glob.glob(loc)
+        for f in files:
+            ret = compile_asm_for_self(f)
+            if ret != 0:
+                if ret == -1:
+                    print "An error has occured during GCC compilation"
+                elif ret == -2:
+                    print "An error has occured converting elf to hex"
+                    sys.exit(ret)
+                    clean_init_hex_for_self(f)
+                    # ret = run_self_sim(f)
+                    # if ret != 0:
+                    #     if ret == -1:
+                    #         print "An error has occured while seting waf's top level"
+                    #     elif ret == -2:
+                    #         print "An error has occured while running " + f
+                    #     sys.exit(ret)
+                    # failures += check_results(f)
+    return failures
 
 def run_c():
    failures = 0
@@ -556,12 +566,6 @@ def run_c():
      failures += check_results(f)
    return failures
 
-"""
-To compile:
-riscv64-unknown-elf-gcc -march=rv64g -mabi=lp64 -static -mcmodel=medany -fvisibility=hidden -nostdlib -nostartfiles -I./env/p -I./macros/scalar
-                        -T./env/p/link.ld rv64ui/add.S -o ./sim_out/rv64ui/rv64ui-p-add
-
-"""
 
 if __name__ == '__main__':
     parse_arguments()
