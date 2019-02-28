@@ -7,23 +7,23 @@ XLEN ?= 64
 src_dir := .
 
 ifeq ($(XLEN),64)
-#include $(src_dir)/rv64ui/Makefrag
-#include $(src_dir)/rv64uc/Makefrag
-#include $(src_dir)/rv64um/Makefrag
-#include $(src_dir)/rv64ua/Makefrag
-#include $(src_dir)/rv64uf/Makefrag
+include $(src_dir)/rv64ui/Makefrag
+include $(src_dir)/rv64uc/Makefrag
+include $(src_dir)/rv64um/Makefrag
+include $(src_dir)/rv64ua/Makefrag
+include $(src_dir)/rv64uf/Makefrag
 include $(src_dir)/rv64ud/Makefrag
-#include $(src_dir)/rv64si/Makefrag
-#include $(src_dir)/rv64mi/Makefrag
+include $(src_dir)/rv64si/Makefrag
+include $(src_dir)/rv64mi/Makefrag
 endif
-#include $(src_dir)/rv32ui/Makefrag
-#include $(src_dir)/rv32uc/Makefrag
-#include $(src_dir)/rv32um/Makefrag
-#include $(src_dir)/rv32ua/Makefrag
-#include $(src_dir)/rv32uf/Makefrag
-#include $(src_dir)/rv32ud/Makefrag
-#include $(src_dir)/rv32si/Makefrag
-#include $(src_dir)/rv32mi/Makefrag
+include $(src_dir)/rv32ui/Makefrag
+include $(src_dir)/rv32uc/Makefrag
+include $(src_dir)/rv32um/Makefrag
+include $(src_dir)/rv32ua/Makefrag
+include $(src_dir)/rv32uf/Makefrag
+include $(src_dir)/rv32ud/Makefrag
+include $(src_dir)/rv32si/Makefrag
+include $(src_dir)/rv32mi/Makefrag
 
 default: all
 
