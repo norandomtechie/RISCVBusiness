@@ -1,3 +1,4 @@
+// Updated to latest version as of 2/28/2019.
 // See LICENSE for license details.
 
 #ifndef _ENV_PHYSICAL_SINGLE_CORE_H
@@ -171,31 +172,6 @@ reset_vector:                                                           \
         csrr a0, mhartid;                                               \
         mret;                                                           \
 1:
-
-//-----------------------------------------------------------------------
-// Data Dump Section Macro
-//-----------------------------------------------------------------------
-
-#define RVTEST_DATA_DUMP_BEGIN .align 4; .global begin_signature; begin_signature:
-
-#define RVTEST_DATA_DUMP_END  .align 4; .global end_signature; end_signature:
-
-//-----------------------------------------------------------------------
-// Text Section Macro
-//-----------------------------------------------------------------------
-
-#define RVTEST_INTVEC_USER_BEGIN \
-  .text;                    \
-  .align 6;                 
- 
-#define RVTEST_INTVEC_SUPER_BEGIN \
-  .align 6;            
-
-#define RVTEST_INTVEC_HYPER_BEGIN \
-  .align 6;           
-
-#define RVTEST_INTVEC_MACH_BEGIN \
-  .align 6;           
 
 //-----------------------------------------------------------------------
 // End Macro

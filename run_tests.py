@@ -36,7 +36,7 @@ START_GREEN = "\033[92m"
 START_RED = "\033[31m"
 
 FILE_NAME = None
-ARCH = "RV32I"
+ARCH = "rv64imfd"
 SUPPORTED_ARCHS = []
 SUPPORTED_TEST_TYPES = ['asm', 'c', 'selfasm', ""]
 TEST_TYPE = ""
@@ -49,8 +49,8 @@ def parse_arguments():
       global ARCH, FILE_NAME, SUPPORTED_ARCHS, TEST_TYPE
       parser = argparse.ArgumentParser(description="Run various processor tests. This script expects to be run at the top level of the RISCV Business directory")
       parser.add_argument('--arch', '-a', dest='arch', type=str,
-                          default="RV32I",
-                          help="Specify the architecture targeted. Option(s): RV32I Default: RV32I")
+                          default="rv64imfd",
+                          help="Specify the architecture targeted. Option(s): rv64imfd Default: rv64imfd")
       parser.add_argument('--test', '-t', dest='test_type', type=str, default="",
                           help="Specify what type of tests to run. Option(s): asm,selfasm,c Default: asm")
       parser.add_argument('file_name', metavar='file_name', type=str,
@@ -74,9 +74,9 @@ def parse_arguments():
               test_file_dir = test_type + '-tests/'
         SUPPORTED_ARCHS = glob.glob('./verification/' + test_file_dir + '*')
         SUPPORTED_ARCHS = [a.split('/'+test_file_dir)[1] for a in SUPPORTED_ARCHS]
-        if ARCH not in SUPPORTED_ARCHS:
-           print "ERROR: No " + test_type + " tests exist for " + ARCH
-           sys.exit(1)
+        #if ARCH not in SUPPORTED_ARCHS:
+        #   print "ERROR: No " + test_type + " tests exist for " + ARCH
+        #   sys.exit(1)
       else:
          if TEST_TYPE == 'selfasm':
             test_file_dir = 'self-tests/'
@@ -84,9 +84,6 @@ def parse_arguments():
             test_file_dir = TEST_TYPE + '-tests/'
          SUPPORTED_ARCHS = glob.glob('./verification/' + test_file_dir + '*')
          SUPPORTED_ARCHS = [a.split('/'+test_file_dir)[1] for a in SUPPORTED_ARCHS]
-         if ARCH not in SUPPORTED_ARCHS:
-           print "ERROR: No " + TEST_TYPE + " tests exist for " + ARCH
-           sys.exit(1)
 
 # compile_asm takes a file_name as input and assembles the file pointed
 # to by that file name. It also takes the elf file that is the result
@@ -135,8 +132,14 @@ def compile_asm_for_self(file_name):
     output_name = output_dir + short_name + '.elf'
 
     # Added 64-bit support
-    xlen = 'rv64g' if '64' in arch else 'rv32g'
-    abi = 'lp64' if '64' in arch else 'ilp32'
+    # Except for 32 bit rv32ud move.S, which seems to include 64 bit versions of move.S
+    # which is weird...
+    if 'move.S' in file_name:
+        xlen = 'rv64g'
+        abi = 'lp64'
+    else:
+        xlen = 'rv64g' if '64' in arch else 'rv32g'
+        abi = 'lp64' if '64' in arch else 'ilp32'
 
     if not os.path.exists(os.path.dirname(output_name)):
         os.makedirs(os.path.dirname(output_name))
@@ -446,7 +449,7 @@ def run_spike_asm(file_name):
 
     elf_name = output_dir + short_name + '.elf'
     log_name = output_dir + short_name + '_spike.hex'
-    cmd_arr = ['spike', '-l', '--isa=RV32Imfd', '+signature=' + log_name, elf_name]
+    cmd_arr = ['spike', '-l', '--isa=rv64imfd', '+signature=' + log_name, elf_name]
     spike_log = open(output_dir + short_name + '_spike.trace', 'w')
     failure = subprocess.call(cmd_arr, stdout = spike_log, stderr = spike_log)
     spike_log.close()
