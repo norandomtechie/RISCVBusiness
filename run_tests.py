@@ -132,7 +132,7 @@ def compile_asm_for_self(file_name):
     output_name = output_dir + short_name + '.elf'
 
     # Added 64-bit support
-    # Except for 32 bit rv32ud move.S, which seems to include 64 bit versions of move.S
+    # Except for 32 bit rv32ud move.S, which just includes the 64 bit version of move.S
     # which is weird...
     if 'move.S' in file_name:
         xlen = 'rv64g'
@@ -497,10 +497,10 @@ def check_results(f):
 
 def run_asm():
    failures = 0
-   if FILE_NAME is None:
-       files = glob.glob("./verification/"+"asm"+"-tests/"+ARCH+"/*.S")
-   else:
-       files = glob.glob("./verification/"+"asm"+"-tests/"+ARCH+"/"+FILE_NAME+"*.S")
+   # if FILE_NAME is None:
+   files = glob.glob("./verification/"+"asm"+"-tests/*/*.S")
+   # else:
+   #     files = glob.glob("./verification/"+"asm"+"-tests/"+ARCH+"/"+FILE_NAME+"*.S")
    print "Starting asm tests..."
    for f in files:
        ret = compile_asm(f)
@@ -557,11 +557,7 @@ def run_selfasm():
 
 def run_c():
    failures = 0
-   if FILE_NAME is None:
-       files = glob.glob("./verification/c-tests/" + ARCH + "/*.c")
-   else:
-       loc = "./verification/c-tests/" + ARCH + "/" + FILE_NAME + "*.c"
-       files = glob.glob(loc)
+   files = glob.glob("./verification/c-tests/*/*.c")
    print "Starting c tests..."
    for f in files:
      ret = compile_c(f)

@@ -18,7 +18,7 @@ asm volatile (                \
   "1: beqz x28, 1b;"          \
   "sll x28, x28, 1;"          \
   "or x28, x28, 1;"           \
-  "csrw mtohost, 1;"          \
+  "sw x28, tohost, t5;"       \
   "1: "                       \
   "j 1b;"                     \
 );
